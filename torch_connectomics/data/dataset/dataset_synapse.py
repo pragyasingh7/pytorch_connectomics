@@ -157,9 +157,12 @@ class SynapsePolarityDataset(BaseDataset):
                 out_input, out_label = augmented['image'], augmented['label']
                 out_input = out_input.astype(np.float32)
                 out_label = out_label.astype(np.float32)
-
-                label_pos = (out_label == 1).astype(np.float32)
-                label_neg = (out_label == 2).astype(np.float32)
+                
+                # pre and post synapse couldn't be distinguished in neuroglancer hence let pre be even and post be odd
+                # generalize pos and neg label for more than 2 ids
+                label_pos = (out_label%2 != 0).astype(np.float32)
+                label_neg = (out_label != 0)
+                label_neg = (label_neg%2 == 0).astype(np.float32)
                 label_all = (out_label != 0).astype(np.float32)
                 out_label = np.stack([label_pos, label_neg, label_all], 0) #3,z,y,x
 

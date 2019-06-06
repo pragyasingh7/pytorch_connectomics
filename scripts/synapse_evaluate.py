@@ -32,17 +32,29 @@ class SynEvaluate(torch.utils.data.Dataset):
 
         self.gt_vol = np.array(h5py.File(gt_path, 'r')['main'])
         self.gt_vol = self.gt_vol.astype(np.uint16) # convert to uint16
+
+        self.pred_vol = np.array(h5py.File(pred_path, 'r')['main'])
+        self.pred_vol = self.pred_vol.astype(self.gt_vol.dtype)
+
+        # crop to match predicted outcome size
+        pred_vol_shape = self.pred_vol.shape[1:]
+        crop = np.subtract(self.gt_vol.shape, pred_vol_shape)//2
+        self.pred_vol = self.pred_vol[crop[0], pred_vol_shape[0]+crop[0],
+                                 crop[1], pred_vol_shape[1]+crop[1],
+                                 crop[2], pred_vol_shape[2]+crop[2]]
+
         valid_mask = np.zeros(self.gt_vol.shape, dtype=self.gt_vol.dtype)
         valid_mask[self.margin[0]:valid_mask.shape[0]-self.margin[0], 
                    self.margin[1]:valid_mask.shape[1]-self.margin[1],
                    self.margin[2]:valid_mask.shape[2]-self.margin[2]] = 1
         self.gt_vol = self.gt_vol * valid_mask
-        self.pred_vol = np.array(h5py.File(pred_path, 'r')['main'])
-        self.pred_vol = self.pred_vol.astype(self.gt_vol.dtype)
-        self.pred_vol = self.pred_vol * valid_mask
+
+        for i in range(pred_vol_shape[0]):
+            self.pred_vol[i] = self.pred_vol[i] * valid_mask
+        #self.pred_vol = self.pred_vol * valid_mask
         #print('gt_vol: ', self.gt_vol.shape, self.gt_vol.dtype)
         #print('pred_vol: ', self.pred_vol.shape, self.pred_vol.dtype)
-        assert(self.gt_vol.shape == self.pred_vol.shape)
+        assert(self.gt_vol.shape == self.pred_vol.shape[1:])
 
         # prepare ground-truth volume
         synapse_labels = np.unique(self.gt_vol)[1:]
@@ -73,8 +85,8 @@ class SynEvaluate(torch.utils.data.Dataset):
         self.search_margin = (0,0,0,0,0,0)
 
         # prepare the prediction volume
-        self.pos_mask = (self.pred_vol == 1).astype(np.uint8)
-        self.neg_mask = (self.pred_vol == 2).astype(np.uint8)
+        self.pos_mask = (self.pred_vol%2==1).astype(np.uint8)
+        self.neg_mask = (self.pred_vol%2!=2).astype(np.uint8)
         self.syn_mask = np.logical_or(self.pos_mask, self.neg_mask)
         self.syn_mask = (self.syn_mask).astype(np.uint8)
 
@@ -216,8 +228,8 @@ if __name__ == "__main__":
     #gt_path = '/n/coxfs01/vcg_connectomics/human/roi215/w08_tr5_tc4_label_v3.1_polarity.h5'
     #pd_path = '/n/coxfs01/vcg_connectomics/human/roi215/tim/964355253395_w08_roi215_subset_predictions_20190207_8x8.h5'
     # pred_16nm_path = '/n/coxfs01/vcg_connectomics/human/roi215/tim/964355253395_w08_roi215_subset_predictions_20190207_16x16.h5'
-    gt_path = 'jwr_vol2/vol2_gt.h5'
-    pd_path = 'jwr_vol2/vol2_unet.h5'
+    gt_path = '/n/coxfs01/vcg_connectomics/JWR15/data_8x8x3um/vol3/syn_gt.h5'
+    pd_path = '/n/coxfs01/psingh/syn_results/benchmark_JWR15/test_output_fpn/vol3/volume_0.h5'
     #pd_path = 'jwr_vol2/vol2_pred.h5'
     print(gt_path)
     print(pd_path)

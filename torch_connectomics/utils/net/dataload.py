@@ -54,31 +54,37 @@ def get_input(args, model_io_size, mode='train'):
 
     for i in range(len(img_name)):
         model_input[i] = np.array(h5py.File(img_name[i], 'r')['main'])/255.0
+        if mode=='train':
+            model_label[i] = np.array(h5py.File(seg_name[i], 'r')['main'])
+            model_label[i] = model_label[i].astype(np.float32)
+            model_input_shape = np.array(model_input[i].shape)
+            model_label_shape = np.array(model_label[i].shape)
+            # cropped even if unequal suze along any one dimension
+            if model_input_shape[0] != model_label_shape[0]:
+                crop = np.subtract(model_input_shape, model_label_shape)//2
+                model_input[i] = model_input[i][crop[0]: model_label_shape[0]+crop[0],
+                                                crop[1]: model_label_shape[1]+crop[1],
+                                                crop[2]: model_label_shape[2]+crop[2]]
         model_input[i] = np.pad(model_input[i], ((pad_size[0],pad_size[0]), 
                                                  (pad_size[1],pad_size[1]), 
                                                  (pad_size[2],pad_size[2])), 'reflect')
-        print(f"volume shape: {model_input[i].shape}")
+        print("volume shape: ", model_input[i].shape)
         volume_shape.append(model_input[i].shape)
         model_input[i] = model_input[i].astype(np.float32)
 
         if mode=='train':
-            model_label[i] = np.array(h5py.File(seg_name[i], 'r')['main'])
-            model_label[i] = model_label[i].astype(np.float32)
             model_label[i] = np.pad(model_label[i], ((pad_size[0],pad_size[0]), 
                                                      (pad_size[1],pad_size[1]), 
                                                      (pad_size[2],pad_size[2])), 'reflect')
-            print(f"label shape: {model_label[i].shape}")
-            
+            print("label shape: ", model_label[i].shape) 
             assert model_input[i].shape == model_label[i].shape
-            
             if args.valid_mask is not None:
                 model_mask[i] = np.array(h5py.File(mask_locations[i], 'r')['main'])
-                model_mask[i] = model_mask[i].astype(np.float32)
-                model_mask[i] = np.pad(model_mask[i], ((pad_size[0],pad_size[0]),
+                model_mask[i] = model_label[i].astype(np.float32)
+                print(f"mask shape: {model_mask[i].shape}")
+                model_label[i] = np.pad(model_label[i], ((pad_size[0],pad_size[0]),
                                                          (pad_size[1],pad_size[1]),
                                                          (pad_size[2],pad_size[2])), 'reflect')
-                
-                print(f"mask shape: {model_mask[i].shape}")
                 assert model_input[i].shape == model_mask[i].shape
 
     if mode=='train':

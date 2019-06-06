@@ -24,7 +24,16 @@ def train(args, train_loader, model, device, criterion,
 #        seg_mask = seg_mask.to(device)
         class_weight = class_weight.to(device)
         output = model(volume)
-
+        print('output_shape:', output.shape)
+        print('label_shape:', label.shape)
+        print('unique_output_ids_0:', len(np.unique(np.array(output).astype(uint8)[0])))
+        print('unique_output_ids_1:', len(np.unique(np.array(output).astype(uint8)[1])))
+        print('unique_output_ids_2:', len(np.unique(np.array(output).astype(uint8)[2])))
+        
+        print('unique_label_ids_0:', len(np.unique(np.array(label).astype(uint8)[0])))
+        print('unique_label_ids_1:', len(np.unique(np.array(output).astype(uint8)[1])))
+        print('unique_label_ids_2:', len(np.unique(np.array(output).astype(uint8)[2])))
+        
         if regularization is not None:
             loss = criterion(output, label, class_weight) + regularization(output)
         else:
@@ -47,7 +56,7 @@ def train(args, train_loader, model, device, criterion,
             record.reset()
             if args.task == 0:
                 visualize_aff(volume, label, output, iteration, writer)
-            elif args.task == 1 or args.task == 2 or args.task == 22:
+            elif args.task == 1 or args.task == 2 or args.task == 22 or args.task == 11:
                 visualize(volume, label, output, iteration, writer)
             #print('weight factor: ', weight_factor) # debug
             # debug
